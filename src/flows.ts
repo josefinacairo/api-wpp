@@ -37,7 +37,7 @@ export const serviceFlows: Record<string, ServiceFlow[]> = {
             keyword: 'Voy a necesitar tu número de Cuenta de Servicios, que está en tu factura, para informarte sobre tu Estado de Cuenta 📊.',
             response: () => '1',
         },
-        { keyword: 'Se presentó un error, por favor intentá nuevamente.', response: () => 'SALDO' },
+        { keyword: 'Se presentó un error, por favor intentá nuevamente', response: () => 'SALDO' },
         {
             keyword: 'ingresá el número de cuenta de servicios:',
             response: (numeroCuenta: string) => `${numeroCuenta}`,
