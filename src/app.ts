@@ -39,7 +39,7 @@ const main = async (): Promise<void> => {
 
 
     provider.http?.server.post(
-        '/send-message',
+        '/check-balance',
         handleCtx(async (bot, req, res) => {
             const { servicio, numeroCuenta } = req.body;
 
