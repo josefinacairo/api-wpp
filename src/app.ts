@@ -126,25 +126,29 @@ const main = async (): Promise<void> => {
 
     // Endpoint GET para consultar saldo desde Redis
     provider.http?.server.get('/get-balance', async (req, res) => {
-        const { servicio, numeroCuenta } = req.body; // Recibe los parámetros en la URL
-
+        const { servicio, numeroCuenta } = req.query; // Leer los parámetros desde la URL
+    
         if (!servicio || !numeroCuenta) {
             res.status(400).send('Faltan parámetros: servicio y numeroCuenta son requeridos.');
             return;
         }
-
-        // Consulta el saldo desde Redis
-        const saldo = await getSaldoFromRedis(numeroCuenta as string, servicio as string);
-
-        if (saldo) {
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({
-                servicio,
-                numeroCuenta,
-                saldo,
-            }));
-        } else {
-            res.status(404).send('Saldo no encontrado para esta cuenta y servicio.');
+    
+        try {
+            // Consulta el saldo desde Redis
+            const saldo = await getSaldoFromRedis(numeroCuenta as string, servicio as string);
+    
+            if (saldo) {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({
+                    servicio,
+                    numeroCuenta,
+                    saldo,
+                }));
+            } else {
+                res.status(404).send('Saldo no encontrado para esta cuenta y servicio.');
+            }
+        } catch (error) {
+            res.status(500).send('Error al procesar la solicitud.');
         }
     });
 
