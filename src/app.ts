@@ -1,6 +1,6 @@
 import { createBot, createFlow, createProvider, addKeyword, MemoryDB } from '@bot-whatsapp/bot';
 import { BaileysProvider, handleCtx } from '@bot-whatsapp/provider-baileys';
-import { serviceFlows } from './flows'; 
+import { serviceFlows } from './flows';
 import 'dotenv/config';
 import { createClient, RedisClientType } from 'redis';
 
@@ -29,7 +29,6 @@ const getSaldoFromRedis = async (numeroCuenta: string, servicio: string): Promis
     }
 };
 
-
 // Función para manejar preguntas y respuestas dinámicamente con el número de cuenta
 const handleServiceMessage = async (
     provider: any,
@@ -38,44 +37,33 @@ const handleServiceMessage = async (
     numeroCuenta: string, 
     db: any 
 ): Promise<boolean> => {
-    // Cargar las frases de "sin saldo" desde el .env y convertirlas en regex
-    const noSaldoPhrases = process.env.NO_SALDO_PHRASES?.split(',').map(phrase => phrase.trim()).join('|') || "no saldo pendiente"; // Valor por defecto si no está definido
-
-    const noSaldoRegex = new RegExp(noSaldoPhrases, 'i');  // 'i' para insensibilidad a mayúsculas/minúsculas
-
+    const noSaldoPhrases = process.env.NO_SALDO_PHRASES?.split(',').map(phrase => phrase.trim()).join('|') || "no saldo pendiente";
+    const noSaldoRegex = new RegExp(noSaldoPhrases, 'i');
     const saldoRegex = /\$\s?((?:\d{1,3}(?:[.,]\d{3})*[.,]\d{2})|\d+)/;
 
     for (const [service, flow] of Object.entries(serviceFlows)) {
         const serviceNumber = process.env[`${service}_NUM`];
-
         if (from === serviceNumber) {
             for (const { keyword, response } of flow) {
                 if (body.includes(keyword)) {
                     const responseWithAccount = response(numeroCuenta); 
                     await provider.sendMessage(from, responseWithAccount, {});
 
-                    // Verificamos si el mensaje contiene alguna de las frases que indican que no hay saldo pendiente
-                    let saldo = "0"; // Inicializamos saldo en cero por defecto
+                    let saldo = "0";
                     if (noSaldoRegex.test(body)) {
-                        saldo = "0";  // Si no hay saldo pendiente, lo ponemos en cero
+                        saldo = "0";
                         console.log("No hay saldo pendiente, estableciendo saldo a 0.");
                     } else {
-                        // Si no es el caso anterior, intentamos obtener el saldo con la expresión regular
                         const match = body.match(saldoRegex);
                         if (match) {
-                            saldo = match[1]; // Capturar el saldo
+                            saldo = match[1];
                             console.log(`Saldo detectado en la respuesta: ${saldo}`);
                         }
                     }
 
                     const dbKey = `${numeroCuenta}-${service}`;
-                    const context = {
-                        key: dbKey,
-                        value: { saldo },
-                        timestamp: new Date().toISOString(),
-                    };
+                    const context = { key: dbKey, value: { saldo }, timestamp: new Date().toISOString() };
 
-                    // Guarda el contexto en Redis
                     await client.hSet(dbKey, { saldo, timestamp: context.timestamp });
                     console.log(`Datos guardados en Redis con key ${dbKey}`);
 
@@ -97,38 +85,32 @@ const main = async (): Promise<void> => {
 
     let nroCta: string = " ";
 
-    provider.http?.server.post(
-        '/update-balance',
-        handleCtx(async (bot, req, res) => {
-            try {
-                const { servicio, numeroCuenta } = req.body;
+    provider.http?.server.post('/update-balance', handleCtx(async (bot, req, res) => {
+        try {
+            const { servicio, numeroCuenta } = req.body;
 
-                const serviciosPermitidos = Object.keys(serviceFlows);
+            const serviciosPermitidos = Object.keys(serviceFlows);
 
-                if (serviciosPermitidos.includes(servicio)) {
-                    const numeroEnvVar = `${servicio}_NUM`;
-                    const numero = process.env[numeroEnvVar];
+            if (serviciosPermitidos.includes(servicio)) {
+                const numeroEnvVar = `${servicio}_NUM`;
+                const numero = process.env[numeroEnvVar];
 
-                    if (numero) {
-                        await bot.sendMessage(numero, 'SALDO', {});
-                        res.end(`Mensaje enviado a ${servicio} con número de cuenta: ${numeroCuenta}.`);
-                        nroCta = numeroCuenta;
-                    } else {
-                        res.end(`No se encontró el número para el servicio ${servicio}.`);
-                    }
+                if (numero) {
+                    await bot.sendMessage(numero, 'SALDO', {});
+                    res.end(`Mensaje enviado a ${servicio} con número de cuenta: ${numeroCuenta}.`);
+                    nroCta = numeroCuenta;
                 } else {
-                    res.end(
-                        `Servicio no permitido. Usa uno de los siguientes: ${serviciosPermitidos.join(', ')}.`
-                    );
+                    res.status(404).end(`No se encontró el número para el servicio ${servicio}.`);
                 }
+            } else {
+                res.status(400).end(`Servicio no permitido. Usa uno de los siguientes: ${serviciosPermitidos.join(', ')}.`);
             }
-            catch {
-                console.error(`Error en el endpoint /update-balance.`);
-            }
-        })
-    );
+        } catch (error) {
+            console.error(`Error en el endpoint /update-balance:`, error);
+            res.status(500).json({ error: 'Error al procesar la solicitud.' });
+        }
+    }));
 
-    // Endpoint GET para consultar saldo desde Redis
     provider.http?.server.get('/get-balance', async (req, res) => {
         try {
             const { servicio, numeroCuenta } = req.query;
@@ -137,15 +119,10 @@ const main = async (): Promise<void> => {
                 return res.status(400).json({ error: 'Faltan parámetros: servicio y numeroCuenta son requeridos.' });
             }
 
-            // Consulta el saldo desde Redis
             const saldo = await getSaldoFromRedis(numeroCuenta as string, servicio as string);
 
             if (saldo) {
-                res.json({
-                    servicio,
-                    numeroCuenta,
-                    saldo,
-                });
+                res.json({ servicio, numeroCuenta, saldo });
             } else {
                 res.status(404).json({ error: 'Saldo no encontrado para esta cuenta y servicio.' });
             }
@@ -154,7 +131,6 @@ const main = async (): Promise<void> => {
             res.status(500).json({ error: 'Error interno del servidor.' });
         }
     });
-
 
     // No se usa más MemoryDB, solo Redis para almacenamiento persistente
     console.log('Configuración de Redis');
@@ -171,9 +147,8 @@ const main = async (): Promise<void> => {
             if (!processed) {
                 console.log(`No se encontró un flujo para el mensaje: ${body}`);
             }
-        }
-        catch {
-            console.error(`Error al procesar el mensaje.`);
+        } catch (error) {
+            console.error(`Error al procesar el mensaje:`, error);
             await provider.sendMessage(from, "Ha ocurrido un error. Por favor, intenta más tarde.", {});
         }
     });
@@ -185,8 +160,10 @@ const main = async (): Promise<void> => {
     });
 };
 
-main().catch((err) => console.error(err));
-
+main().catch((err) => {
+    console.error('Error al iniciar el bot:', err);
+    process.exit(1); // Asegura que el proceso termine en caso de error
+});
 
 client.on('error', (err) => {
     console.error('Error en Redis:', err);
