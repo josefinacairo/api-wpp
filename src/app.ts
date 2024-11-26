@@ -44,7 +44,7 @@ const handleServiceMessage = async (
 
     const noSaldoRegex = new RegExp(noSaldoPhrases, 'i');  // 'i' para insensibilidad a mayúsculas/minúsculas
 
-    const saldoRegex = /\$\s?(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/;
+    const saldoRegex = /\$\s?((?:\d{1,3}(?:[.,]\d{3})*[.,]\d{2})|\d+)/;
 
     for (const [service, flow] of Object.entries(serviceFlows)) {
         const serviceNumber = process.env[`${service}_NUM`];
