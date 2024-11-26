@@ -101,25 +101,30 @@ const main = async (): Promise<void> => {
     provider.http?.server.post(
         '/update-balance',
         handleCtx(async (bot, req, res) => {
-            const { servicio, numeroCuenta } = req.body;
+            try {
+                const { servicio, numeroCuenta } = req.body;
 
-            const serviciosPermitidos = Object.keys(serviceFlows);
+                const serviciosPermitidos = Object.keys(serviceFlows);
 
-            if (serviciosPermitidos.includes(servicio)) {
-                const numeroEnvVar = `${servicio}_NUM`;
-                const numero = process.env[numeroEnvVar];
+                if (serviciosPermitidos.includes(servicio)) {
+                    const numeroEnvVar = `${servicio}_NUM`;
+                    const numero = process.env[numeroEnvVar];
 
-                if (numero) {
-                    await bot.sendMessage(numero, 'SALDO', {});
-                    res.end(`Mensaje enviado a ${servicio} con número de cuenta: ${numeroCuenta}.`);
-                    nroCta = numeroCuenta;
+                    if (numero) {
+                        await bot.sendMessage(numero, 'SALDO', {});
+                        res.end(`Mensaje enviado a ${servicio} con número de cuenta: ${numeroCuenta}.`);
+                        nroCta = numeroCuenta;
+                    } else {
+                        res.end(`No se encontró el número para el servicio ${servicio}.`);
+                    }
                 } else {
-                    res.end(`No se encontró el número para el servicio ${servicio}.`);
+                    res.end(
+                        `Servicio no permitido. Usa uno de los siguientes: ${serviciosPermitidos.join(', ')}.`
+                    );
                 }
-            } else {
-                res.end(
-                    `Servicio no permitido. Usa uno de los siguientes: ${serviciosPermitidos.join(', ')}.`
-                );
+            }
+            catch {
+                console.error(`Error en el endpoint /update-balance.`);
             }
         })
     );
@@ -161,10 +166,16 @@ const main = async (): Promise<void> => {
 
         console.log(`Mensaje recibido de ${from}: ${body}`);
 
-        const processed = await handleServiceMessage(provider, from, body, nroCta, null); // Pasamos null porque no necesitamos MemoryDB aquí
+        try {
+            const processed = await handleServiceMessage(provider, from, body, nroCta, null); // Pasamos null porque no necesitamos MemoryDB aquí
 
-        if (!processed) {
-            console.log(`No se encontró un flujo para el mensaje: ${body}`);
+            if (!processed) {
+                console.log(`No se encontró un flujo para el mensaje: ${body}`);
+            }
+        }
+        catch {
+            console.error(`Error al procesar el mensaje.`);
+            await provider.sendMessage(from, "Ha ocurrido un error. Por favor, intenta más tarde.", {});
         }
     });
 
@@ -176,3 +187,9 @@ const main = async (): Promise<void> => {
 };
 
 main().catch((err) => console.error(err));
+
+
+client.on('error', (err) => {
+    console.error('Error en Redis:', err);
+    setTimeout(() => client.connect(), 5000);
+});
