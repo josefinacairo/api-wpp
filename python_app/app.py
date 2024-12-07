@@ -12,9 +12,9 @@ CORS(app)
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-path_nombre_archivos_provincia = os.path.join(current_dir,'data/modelos/PROV/precio_por_localidad_prov.csv')
-path_nombre_archivos_CABA = os.path.join(current_dir,'data/modelos/CABA/precios_por_localidad_caba.csv')
-path_nombre_archivos_BSAS = os.path.join(current_dir,'data/modelos/BSAS/precios_por_localidad_bsas.csv')
+path_nombre_archivos_provincia = os.path.join(current_dir,'data','modelos','PROV','precio_por_localidad_prov.csv')
+path_nombre_archivos_CABA = os.path.join(current_dir,'data','modelos','CABA','precios_por_localidad_caba.csv')
+path_nombre_archivos_BSAS = os.path.join(current_dir,'data','modelos','BSAS','precios_por_localidad_bsas.csv')
 
 df_localidades_caba = pd.read_csv(path_nombre_archivos_CABA)
 df_localidades_prov = pd.read_csv(path_nombre_archivos_provincia)
@@ -33,18 +33,18 @@ def obtener_localidades(df_localidades_bsas, df_localidades_prov,df_localidades_
 
 df_localidades = obtener_localidades(df_localidades_bsas,df_localidades_prov,df_localidades_caba)
 
-model_path_caba = os.path.join(current_dir, 'data\modelos\CABA\modelo_filtrado_CABA.pkl')
-scaler_path_caba = os.path.join(current_dir, 'data\modelos\CABA\scaler_CABA.joblib')
+model_path_caba = os.path.join(current_dir, 'data','modelos','CABA','modelo_filtrado_CABA.pkl')
+scaler_path_caba = os.path.join(current_dir, 'data','modelos','CABA','scaler_CABA.joblib')
 model_caba = joblib.load(model_path_caba)
 scaler_caba = joblib.load(scaler_path_caba)
 
-model_path_prov = os.path.join(current_dir, 'data\modelos\PROV\model_prov.pkl')
-scaler_path_prov = os.path.join(current_dir, 'data\modelos\PROV\scaler_prov.joblib')
+model_path_prov = os.path.join(current_dir, 'data','modelos','PROV','model_prov.pkl')
+scaler_path_prov = os.path.join(current_dir, 'data','modelos','PROV','scaler_prov.joblib')
 model_prov = joblib.load(model_path_prov)
 scaler_prov = joblib.load(scaler_path_prov)
 
-model_path_bsas = os.path.join(current_dir, 'data\modelos\BSAS\model_bsas.pkl')
-scaler_path_bsas = os.path.join(current_dir, 'data\modelos\BSAS\scaler_bsas.joblib')
+model_path_bsas = os.path.join(current_dir, 'data','modelos','BSAS','model_bsas.pkl')
+scaler_path_bsas = os.path.join(current_dir, 'data','modelos','BSAS','scaler_bsas.joblib')
 model_bsas = joblib.load(model_path_bsas)
 scaler_bsas = joblib.load(scaler_path_bsas)
 
@@ -157,13 +157,12 @@ def obtener_propiedades_en_localidad(provincia, localidad):
     
     print("PROV: ",provincia)
     if provincia == "Ciudad Autonoma de Buenos Aires":
-        filename = 'data/modelos/CABA/df_inmuebles_caba.csv'
+        filepath = os.path.join(current_dir, 'data','modelos','CABA','df_inmuebles_caba.csv')
     elif provincia == "Zona Sur (GBA)" or provincia == "Zona Oeste (GBA)" or provincia == "Zona Norte (GBA)":
-        filename = 'data/modelos/BSAS/df_inmuebles_bsas.csv'
-    else:    
-        filename = 'data/modelos/PROV/df_inmuebles_prov.csv'
+        filepath = os.path.join(current_dir, 'data','modelos','BSAS','df_inmuebles_bsas.csv')
+    else:
+        filepath = os.path.join(current_dir, 'data','modelos','PROV','df_inmuebles_prov.csv')
     
-    filepath = os.path.join(current_dir, filename)
     df_propiedades = pd.read_csv(filepath)
     df_propiedades = df_propiedades[(df_propiedades['provincia'] == provincia) & (df_propiedades['localidad'] == localidad)]
     
