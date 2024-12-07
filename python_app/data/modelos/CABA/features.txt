@@ -1,0 +1,7 @@
+Con Cat boost
+
+superficie_total
+precio_m2
+superficie_cubierta
+precio_m2_medio_localidad
+cantidad_de_ambiente

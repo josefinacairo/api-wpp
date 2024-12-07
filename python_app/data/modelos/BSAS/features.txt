@@ -1,0 +1,7 @@
+Con XGB y catboost en log
+
+#3  precio_m2_cubierto_medio_localidad    40.967295
+#0                    superficie_total    31.261406
+#1                 superficie_cubierta    13.030908
+#4              precio_medio_localidad    11.664221
+#2                cantidad_de_ambiente     3.076170
