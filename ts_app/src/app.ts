@@ -16,20 +16,19 @@ client.on('connect', () => {
 const getSaldoFromRedis = async (numeroCuenta: string, servicio: string): Promise<string | null> => {
     const dbKey = `${numeroCuenta}-${servicio}`;
     try {
-        // Obtener el saldo almacenado en Redis para la clave especificada
         const saldo = await client.hGet(dbKey, 'saldo');
-        if (saldo) {
-            console.log(`Saldo recuperado de Redis: ${saldo}`);
-            return saldo; // Retorna el saldo si se encuentra
-        } else {
-            console.log(`No se encontró saldo para la clave: ${dbKey}`);
-            return null; // Retorna null si no se encuentra saldo
+        if (!saldo) {
+            console.warn(`Clave no encontrada en Redis: ${dbKey}`);
+            return null;
         }
+        console.log(`Saldo recuperado de Redis: ${saldo}`);
+        return saldo;
     } catch (error) {
-        console.error(`Error al recuperar saldo desde Redis:`, error);
+        console.error(`Error al recuperar saldo desde Redis para clave ${dbKey}:`, error);
         return null;
     }
 };
+
 
 // Función para manejar preguntas y respuestas dinámicamente con el número de cuenta
 const handleServiceMessage = async (
@@ -131,31 +130,31 @@ const main = async (): Promise<void> => {
 
     // Endpoint GET para consultar saldo desde Redis
     provider.http?.server.get('/get-balance', async (req, res) => {
-        const { servicio, numeroCuenta } = req.query; // Leer los parámetros desde la URL
-    
-        if (!servicio || !numeroCuenta) {
-            res.status(400).send('Faltan parámetros: servicio y numeroCuenta son requeridos.');
-            return;
-        }
-    
         try {
+            const { servicio, numeroCuenta } = req.query;
+
+            if (!servicio || !numeroCuenta) {
+                return res.status(400).json({ error: 'Faltan parámetros: servicio y numeroCuenta son requeridos.' });
+            }
+
             // Consulta el saldo desde Redis
             const saldo = await getSaldoFromRedis(numeroCuenta as string, servicio as string);
-    
+
             if (saldo) {
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({
+                res.json({
                     servicio,
                     numeroCuenta,
                     saldo,
-                }));
+                });
             } else {
-                res.status(404).send('Saldo no encontrado para esta cuenta y servicio.');
+                res.status(404).json({ error: 'Saldo no encontrado para esta cuenta y servicio.' });
             }
         } catch (error) {
-            res.status(500).send('Error al procesar la solicitud.');
+            console.error('Error al procesar la solicitud:', error);
+            res.status(500).json({ error: 'Error interno del servidor.' });
         }
     });
+
 
     // No se usa más MemoryDB, solo Redis para almacenamiento persistente
     console.log('Configuración de Redis');
